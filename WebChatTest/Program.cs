@@ -1,7 +1,14 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using WebChatTest.Hubs;
 using WebChatTest.Models.Identity;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,9 +37,28 @@ builder.Services.AddCors(options => options.AddPolicy("CorsPolicy",
         {
             builder.AllowAnyHeader()
                    .AllowAnyMethod()
-                   .SetIsOriginAllowed((host) => true)
-                   .AllowCredentials();
+                   .AllowCredentials()
+                   .SetIsOriginAllowed((host) => true);
         }));
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication(options => {
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = "WebChatServer",
+            ValidateAudience = true,
+            ValidAudience = "WebChatClient",
+            ClockSkew = TimeSpan.Zero,
+            ValidateLifetime = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperSecretKey_ForWebChat123123")),
+            ValidateIssuerSigningKey = true,
+        };
+    });
 
 var app = builder.Build();
 

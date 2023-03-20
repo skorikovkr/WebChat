@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using WebChatTest.Models.Identity;
 
 namespace WebChatTest.Controllers
@@ -31,6 +35,12 @@ namespace WebChatTest.Controllers
             if (userCreation.Succeeded)
             {
                 await _signInManager.SignInAsync(user, isPersistent: false);
+                List<Claim> claims = new List<Claim>();
+
+                claims.Add(new Claim(ClaimTypes.Name, info.UserName));
+
+                foreach (var claim in claims)
+                    await _userManager.AddClaimAsync(user, claim);
             }
             else
             {
@@ -52,12 +62,19 @@ namespace WebChatTest.Controllers
 
             if (userSignIn.Succeeded)
             {
-                return Ok();
+                var claims = new List<Claim> { new Claim(ClaimTypes.Name, info.UserName) };
+                var jwt = new JwtSecurityToken(
+                        issuer: "WebChatServer",
+                        audience: "WebChatClient",
+                        claims: claims,
+                        expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(2)),
+                        signingCredentials: new SigningCredentials(
+                            new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperSecretKey_ForWebChat123123")),
+                            SecurityAlgorithms.HmacSha256));
+                var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
+                return Ok(encodedJwt);
             }
-            else
-            {
-                return BadRequest();
-            }
+            return BadRequest();
         }
 
         [HttpGet]

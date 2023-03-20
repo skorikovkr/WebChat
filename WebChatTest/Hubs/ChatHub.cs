@@ -9,25 +9,40 @@ namespace WebChatTest.Hubs
     public class ChatHub : Hub
     {
 
-        private protected ApplicationDbContext _dbContext;
+        //private protected ApplicationDbContext _dbContext;
 
-        public ChatHub(ApplicationDbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
+        //public ChatHub(ApplicationDbContext dbContext)
+        //{
+        //    _dbContext = dbContext;
+        //}
 
-        [Authorize]
-        public async Task SendMessage(string username, string message, string chatRoomName)
-        {
-            //await Clients.Group(chatRoomName).SendAsync("RecieveMessage", username, message);
+        //[Authorize]
+        //public async Task SendMessage(string username, string message, string chatRoomName)
+        //{
+        //    await Clients.Group(chatRoomName).SendAsync("RecieveMessage", username, message);
 
-            //await _dbContext.Messages.AddAsync(new Message()
-            //{
-            //    Text = message,
-            //    Sender = sender,
-            //    ChatRoom = 
-            //});
-            //await _dbContext.SaveChangesAsync();
-        }
+        //    //await _dbContext.Messages.AddAsync(new Message()
+        //    //{
+        //    //    Text = message,
+        //    //    Sender = sender,
+        //    //    ChatRoom =
+        //    //});
+        //    //await _dbContext.SaveChangesAsync();
+        //}
+
+        //[Authorize]
+        //public async Task ConnectToRoom(string username, string chatRoomName)
+        //{
+        //    Console.WriteLine(Context.UserIdentifier);
+        //    //await Clients.Group(chatRoomName).SendAsync("RecieveMessage", username, message);
+
+        //    //await _dbContext.Messages.AddAsync(new Message()
+        //    //{
+        //    //    Text = message,
+        //    //    Sender = sender,
+        //    //    ChatRoom =
+        //    //});
+        //    //await _dbContext.SaveChangesAsync();
+        //}
     }
 }

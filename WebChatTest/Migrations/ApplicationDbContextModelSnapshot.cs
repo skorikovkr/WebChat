@@ -34,7 +34,7 @@ namespace WebChatTest.Migrations
 
                     b.HasIndex("UsersId");
 
-                    b.ToTable("AppUserChatRoom");
+                    b.ToTable("AppUserChatRoom", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -191,7 +191,7 @@ namespace WebChatTest.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("ChatRooms");
+                    b.ToTable("ChatRooms", (string)null);
                 });
 
             modelBuilder.Entity("WebChatTest.Models.Identity.AppUser", b =>
@@ -283,7 +283,7 @@ namespace WebChatTest.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("AppUserChatRoom", b =>

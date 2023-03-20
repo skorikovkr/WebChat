@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using WebChatTest.Hubs;
 using WebChatTest.Models;
 using WebChatTest.Models.Identity;
 
@@ -14,15 +16,18 @@ namespace WebChatTest.Controllers
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public ChatController(ApplicationDbContext dbContext, UserManager<AppUser> userManager)
+        public ChatController(ApplicationDbContext dbContext, UserManager<AppUser> userManager,
+            IHubContext<ChatHub> hubContext)
         {
             _dbContext = dbContext;
             _userManager = userManager;
+            _hubContext = hubContext;
         }
 
-        [Authorize]
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Create()
         {
             var username = User.Identity.Name;
@@ -45,8 +50,8 @@ namespace WebChatTest.Controllers
             return Ok(chatRoomName);
         }
 
-        [Authorize]
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> AddUserToRoom([FromBody]AddingUserToRoomModel info)
         {
             var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == info.ChatRoomName);
@@ -61,6 +66,40 @@ namespace WebChatTest.Controllers
             if (!room.Users.Any(u => u.UserName == info.UserName))
                 room.Users.Add(userToAdd);
             await _dbContext.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> ConnectToRoom([FromBody]ConnectingToRoomModel info) {
+            var username = User.Identity.Name;
+            var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == info.ChatRoomName);
+            if (room == null) {
+                return NotFound($"No room with name {info.ChatRoomName}");
+            }
+            if (!room.Users.Any(u => u.UserName == username)) {
+                return BadRequest($"User {username} has no access to room {room.Name}.");
+            }
+            await _hubContext.Groups.AddToGroupAsync(info.ConnectionId, info.ChatRoomName);
+            return Ok();
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> SendMessageToRoom([FromBody] SendingMessageToRoom info)
+        {
+            var username = User.Identity.Name;
+            var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == info.ChatRoomName);
+            if (room == null)
+            {
+                return NotFound($"No room with name {info.ChatRoomName}");
+            }
+            if (!room.Users.Any(u => u.UserName == username))
+            {
+                return BadRequest($"User {username} has no access to room {room.Name}.");
+            }
+            await _hubContext.Clients.Group(info.ChatRoomName).SendAsync("RecieveMessage", username, info.Message); 
+            await _hubContext.Clients.All.SendAsync("RecieveMessage", username, "Отправил некое сообщение.");
             return Ok();
         }
     }
