@@ -1,48 +1,65 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using WebChatTest.Models;
 using WebChatTest.Models.Identity;
+using static WebChatTest.Infrastructure.ConnectionMapper;
 
 namespace WebChatTest.Hubs
 {
+    [Authorize]
     public class ChatHub : Hub
     {
+        private readonly static ConnectionMapping<string> _connections =
+            new ConnectionMapping<string>();
+        private readonly ApplicationDbContext _dbContext;
 
-        //private protected ApplicationDbContext _dbContext;
+        public static IEnumerable<string> GetConnectionsByUser(string username) {
+            return _connections.GetConnections(username);
+        }
 
-        //public ChatHub(ApplicationDbContext dbContext)
-        //{
-        //    _dbContext = dbContext;
-        //}
+        public ChatHub(ApplicationDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
 
-        //[Authorize]
-        //public async Task SendMessage(string username, string message, string chatRoomName)
-        //{
-        //    await Clients.Group(chatRoomName).SendAsync("RecieveMessage", username, message);
+        public async Task ConnectToRoom(string roomName)
+        {
+            var username = Context.User.Identity.Name;
+            var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == roomName);
+            if (room == null)
+            {
+                await Clients.Caller.SendAsync("Notify", $"No room with name {roomName}");
+                return;
+            }
+            if (!room.Users.Any(u => u.UserName == username))
+            {
+                await Clients.Caller.SendAsync("Notify", $"User {username} has no access to room {room.Name}.");
+                return;
+            }
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
+        }
 
-        //    //await _dbContext.Messages.AddAsync(new Message()
-        //    //{
-        //    //    Text = message,
-        //    //    Sender = sender,
-        //    //    ChatRoom =
-        //    //});
-        //    //await _dbContext.SaveChangesAsync();
-        //}
+        public Task LeaveToRoom(string roomName)
+        {
+            return Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
+        }
 
-        //[Authorize]
-        //public async Task ConnectToRoom(string username, string chatRoomName)
-        //{
-        //    Console.WriteLine(Context.UserIdentifier);
-        //    //await Clients.Group(chatRoomName).SendAsync("RecieveMessage", username, message);
+        public override async Task OnConnectedAsync()
+        {
+            string name = Context.User.Identity.Name;
 
-        //    //await _dbContext.Messages.AddAsync(new Message()
-        //    //{
-        //    //    Text = message,
-        //    //    Sender = sender,
-        //    //    ChatRoom =
-        //    //});
-        //    //await _dbContext.SaveChangesAsync();
-        //}
+            _connections.Add(name, Context.ConnectionId);
+
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            string name = Context.User.Identity.Name;
+
+            _connections.Remove(name, Context.ConnectionId);
+
+            await base.OnDisconnectedAsync(exception);
+        }
     }
 }

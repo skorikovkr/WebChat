@@ -67,17 +67,17 @@ namespace WebChatTest.Controllers
                         issuer: "WebChatServer",
                         audience: "WebChatClient",
                         claims: claims,
-                        expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(2)),
+                        expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(20)),
                         signingCredentials: new SigningCredentials(
                             new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperSecretKey_ForWebChat123123")),
                             SecurityAlgorithms.HmacSha256));
                 var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
                 return Ok(encodedJwt);
             }
-            return BadRequest();
+            return Unauthorized();
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
