@@ -1,4 +1,5 @@
-﻿using WebChatTest.Models.Identity;
+﻿using System.Text.Json.Serialization;
+using WebChatTest.Models.Identity;
 
 namespace WebChatTest.Models
 {
@@ -8,6 +9,7 @@ namespace WebChatTest.Models
         public string Name { get; set; }
         public string DisplayName { get; set; }
 
+        [JsonIgnore]
         public virtual List<AppUser> Users { get; set; } = new List<AppUser>();
     }
 }

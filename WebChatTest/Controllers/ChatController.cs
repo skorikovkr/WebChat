@@ -62,41 +62,13 @@ namespace WebChatTest.Controllers
             return Ok();
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
-        public async Task<IActionResult> ConnectToRoom(string chatRoomName) {
-            var username = User.Identity.Name;
-            var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == chatRoomName);
-            if (room == null) {
-                return NotFound($"No room with name {chatRoomName}");
-            }
-            if (!room.Users.Any(u => u.UserName == username)) {
-                return BadRequest($"User {username} has no access to room {room.Name}.");
-            }
-            foreach (var connection in ChatHub.GetConnectionsByUser(username))
-            {
-                await _hubContext.Groups.AddToGroupAsync(chatRoomName, connection);
-            }
-            return Ok();
-        }
-
-        // ПЕРЕНЕСТИ В ХАБ
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> SendMessageToRoom([FromBody] SendingMessageToRoom info)
+        public async Task<IActionResult> GetAvailableRooms()
         {
-            var username = User.Identity.Name;
-            var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == info.ChatRoomName);
-            if (room == null)
-            {
-                return NotFound($"No room with name {info.ChatRoomName}");
-            }
-            if (!room.Users.Any(u => u.UserName == username))
-            {
-                return BadRequest($"User {username} has no access to room {room.Name}.");
-            }
-            await _hubContext.Clients.Group(info.ChatRoomName).SendAsync("RecieveMessage", username, info.Message);
-            return Ok();
+            var username = User.Identity!.Name;
+            var user = await _userManager.FindByNameAsync(username);
+            return Ok(user.ChatRooms);
         }
     }
 }

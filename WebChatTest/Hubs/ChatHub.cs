@@ -38,10 +38,26 @@ namespace WebChatTest.Hubs
             }
             await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
         }
-
         public Task LeaveToRoom(string roomName)
         {
             return Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
+        }
+
+        public async Task SendMessageToRoom(string roomName, string message)
+        {
+            var username = Context.User.Identity.Name;
+            var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == roomName);
+            if (room == null)
+            {
+                await Clients.Caller.SendAsync("Notify", $"No room with name {roomName}");
+                return;
+            }
+            if (!room.Users.Any(u => u.UserName == username))
+            {
+                await Clients.Caller.SendAsync("Notify", $"User {username} has no access to room {room.Name}.");
+                return;
+            }
+            await Clients.Group(roomName).SendAsync("RecieveMessage", username, message);
         }
 
         public override async Task OnConnectedAsync()
