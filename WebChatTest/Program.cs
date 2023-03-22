@@ -41,6 +41,10 @@ builder.Services.AddCors(options => options.AddPolicy("CorsPolicy",
                    .SetIsOriginAllowed((host) => true);
         }));
 builder.Services.AddAuthorization();
+
+var issuer = builder.Configuration.GetValue<string>("JWTSettings:Issuer");
+var audience = builder.Configuration.GetValue<string>("JWTSettings:Audience");
+var key = builder.Configuration.GetValue<string>("JWTSettings:SecretKey");
 builder.Services.AddAuthentication(options => {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -50,12 +54,12 @@ builder.Services.AddAuthentication(options => {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = "WebChatServer",
+            ValidIssuer = issuer,
             ValidateAudience = true,
-            ValidAudience = "WebChatClient",
+            ValidAudience = audience,
             ClockSkew = TimeSpan.Zero,
             ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperSecretKey_ForWebChat123123")),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
             ValidateIssuerSigningKey = true,
         };
     });

@@ -70,5 +70,29 @@ namespace WebChatTest.Controllers
             var user = await _userManager.FindByNameAsync(username);
             return Ok(user.ChatRooms);
         }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetRoomMessageHistory(string roomName)
+        {
+            var username = User.Identity!.Name;
+            var user = await _userManager.FindByNameAsync(username); 
+            var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == roomName);
+            if (room == null)
+            {
+                return BadRequest($"No room with name {roomName}.");
+            }
+            if (!room.Users.Any(u => u.UserName == username))
+                return Unauthorized($"User {username} has no access to room {room.Name}.");
+            var result = _dbContext.Messages
+                .Where(m => m.ChatRoom.Name == roomName)
+                .OrderBy(m => m.Date)
+                .Select(m => new Message() { 
+                    Text = m.Text,
+                    UserName = m.Sender.UserName
+                })
+                .ToList();
+            return Ok(result);
+        }
     }
 }

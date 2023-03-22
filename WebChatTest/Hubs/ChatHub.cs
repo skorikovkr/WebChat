@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using WebChatTest.Models;
 using WebChatTest.Models.Identity;
 using static WebChatTest.Infrastructure.ConnectionMapper;
 
@@ -12,14 +14,16 @@ namespace WebChatTest.Hubs
         private readonly static ConnectionMapping<string> _connections =
             new ConnectionMapping<string>();
         private readonly ApplicationDbContext _dbContext;
+        private readonly UserManager<AppUser> _userManager;
 
         public static IEnumerable<string> GetConnectionsByUser(string username) {
             return _connections.GetConnections(username);
         }
 
-        public ChatHub(ApplicationDbContext dbContext)
+        public ChatHub(ApplicationDbContext dbContext, UserManager<AppUser> userManager)
         {
             _dbContext = dbContext;
+            _userManager = userManager;
         }
 
         public async Task ConnectToRoom(string roomName)
@@ -38,6 +42,7 @@ namespace WebChatTest.Hubs
             }
             await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
         }
+
         public Task LeaveToRoom(string roomName)
         {
             return Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
@@ -58,23 +63,28 @@ namespace WebChatTest.Hubs
                 return;
             }
             await Clients.Group(roomName).SendAsync("RecieveMessage", username, message);
+            var user = await _userManager.FindByNameAsync(username);
+            await _dbContext.Messages.AddAsync(new Message()
+            {
+                Text = message,
+                ChatRoom = room,
+                Sender = user,
+                Date = DateTime.Now
+            });
+            await _dbContext.SaveChangesAsync();
         }
 
         public override async Task OnConnectedAsync()
         {
             string name = Context.User.Identity.Name;
-
             _connections.Add(name, Context.ConnectionId);
-
             await base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             string name = Context.User.Identity.Name;
-
             _connections.Remove(name, Context.ConnectionId);
-
             await base.OnDisconnectedAsync(exception);
         }
     }

@@ -16,12 +16,15 @@ namespace WebChatTest.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
+        private readonly IConfiguration _config;
 
         public IdentityController(UserManager<AppUser> userManager,
-            SignInManager<AppUser> signInManager)
+            SignInManager<AppUser> signInManager,
+            IConfiguration config)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _config = config;
 
         }
 
@@ -62,14 +65,17 @@ namespace WebChatTest.Controllers
 
             if (userSignIn.Succeeded)
             {
+                var issuer = _config.GetValue<string>("JWTSettings:Issuer");
+                var audience = _config.GetValue<string>("JWTSettings:Audience");
+                var key = _config.GetValue<string>("JWTSettings:SecretKey");
                 var claims = new List<Claim> { new Claim(ClaimTypes.Name, info.UserName) };
                 var jwt = new JwtSecurityToken(
-                        issuer: "WebChatServer",
-                        audience: "WebChatClient",
+                        issuer: issuer,
+                        audience: audience,
                         claims: claims,
                         expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(20)),
                         signingCredentials: new SigningCredentials(
-                            new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperSecretKey_ForWebChat123123")),
+                            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
                             SecurityAlgorithms.HmacSha256));
                 var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
                 return Ok(encodedJwt);
