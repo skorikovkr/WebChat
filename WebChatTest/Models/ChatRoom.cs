@@ -10,6 +10,8 @@ namespace WebChatTest.Models
         public string DisplayName { get; set; }
 
         [JsonIgnore]
+        public virtual AppUser? Admin { get; set; }
+        [JsonIgnore]
         public virtual List<AppUser> Users { get; set; } = new List<AppUser>();
     }
 }

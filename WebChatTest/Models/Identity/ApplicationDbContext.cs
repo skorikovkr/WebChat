@@ -15,6 +15,15 @@ namespace WebChatTest.Models.Identity
             builder.Entity<ChatRoom>()
                 .HasIndex(c => c.Name)
                 .IsUnique();
+
+            builder.Entity<ChatRoom>()
+                .HasOne(r => r.Admin)
+                .WithMany(a => a.AdminsRooms)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<ChatRoom>()
+                .HasMany(r => r.Users)
+                .WithMany(u => u.ChatRooms);
         }
 
         public DbSet<ChatRoom> ChatRooms { get; set; }

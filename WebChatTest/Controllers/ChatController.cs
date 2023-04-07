@@ -27,7 +27,7 @@ namespace WebChatTest.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> Create(string roomName = "")
+        public async Task<IActionResult> Create()
         {
             var username = User.Identity.Name;
             var sender = await _userManager.FindByNameAsync(username);
@@ -35,7 +35,7 @@ namespace WebChatTest.Controllers
             var room = await _dbContext.ChatRooms.AddAsync(new ChatRoom()
             {
                 Name = chatRoomName,
-                DisplayName = roomName == "" ? chatRoomName : roomName
+                Admin = sender
             });
             await _dbContext.SaveChangesAsync();
             room.Entity.Users.Add(sender);
@@ -47,9 +47,14 @@ namespace WebChatTest.Controllers
         [Authorize]
         public async Task<IActionResult> AddUserToRoom([FromBody]AddingUserToRoomModel info)
         {
+            var username = User.Identity.Name;
+            var user = await _userManager.FindByNameAsync(username);
             var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == info.ChatRoomName);
             if (room == null) {
                 return BadRequest($"No room with name {info.ChatRoomName}.");
+            }
+            if (room.Admin?.Id != user.Id) {
+                return Unauthorized("No rights to add users to this room.");
             }
             var userToAdd = await _userManager.FindByNameAsync(info.UserName);
             if (userToAdd == null)
@@ -68,7 +73,14 @@ namespace WebChatTest.Controllers
         {
             var username = User.Identity!.Name;
             var user = await _userManager.FindByNameAsync(username);
-            return Ok(user.ChatRooms);
+            return Ok(user.ChatRooms
+                .Select(r => {
+                    if (String.IsNullOrEmpty(r.DisplayName)) {
+                        var someUserNamesFromGroup = r.Users.Take(3).Select(u => u.UserName);
+                        r.DisplayName = String.Join(", ", someUserNamesFromGroup);
+                    };
+                    return r;
+                }).ToList());
         }
 
         [HttpGet]
