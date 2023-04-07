@@ -9,14 +9,15 @@ using static WebChatTest.Infrastructure.ConnectionMapper;
 namespace WebChatTest.Hubs
 {
     [Authorize]
-    public class ChatHub : Hub
+    public class ChatHub : Hub<IChatHub>
     {
         private readonly static ConnectionMapping<string> _connections =
             new ConnectionMapping<string>();
         private readonly ApplicationDbContext _dbContext;
         private readonly UserManager<AppUser> _userManager;
 
-        public static IEnumerable<string> GetConnectionsByUser(string username) {
+        public static IEnumerable<string> GetConnectionsByUser(string username)
+        {
             return _connections.GetConnections(username);
         }
 
@@ -32,20 +33,22 @@ namespace WebChatTest.Hubs
             var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == roomName);
             if (room == null)
             {
-                await Clients.Caller.SendAsync("Notify", $"No room with name {roomName}");
+                await Clients.Caller.Notify($"No room with name {roomName}");
                 return;
             }
             if (!room.Users.Any(u => u.UserName == username))
             {
-                await Clients.Caller.SendAsync("Notify", $"User {username} has no access to room {room.Name}.");
+                await Clients.Caller.Notify($"User {username} has no access to room {room.Name}.");
                 return;
             }
             await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
         }
 
-        public Task LeaveToRoom(string roomName)
+        public async Task LeaveFromRoom(string roomName)
         {
-            return Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
+            var username = Context.User.Identity.Name;
+            foreach (var connId in _connections.GetConnections(username))
+                await Groups.RemoveFromGroupAsync(connId, roomName);
         }
 
         public async Task SendMessageToRoom(string roomName, string message)
@@ -54,15 +57,15 @@ namespace WebChatTest.Hubs
             var room = await _dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Name == roomName);
             if (room == null)
             {
-                await Clients.Caller.SendAsync("Notify", $"No room with name {roomName}");
+                await Clients.Caller.Notify($"No room with name {roomName}");
                 return;
             }
             if (!room.Users.Any(u => u.UserName == username))
             {
-                await Clients.Caller.SendAsync("Notify", $"User {username} has no access to room {room.Name}.");
+                await Clients.Caller.Notify($"User {username} has no access to room {room.Name}.");
                 return;
             }
-            await Clients.Group(roomName).SendAsync("RecieveMessage", username, message);
+            await Clients.Group(roomName).RecieveMessage(username, message);
             var user = await _userManager.FindByNameAsync(username);
             await _dbContext.Messages.AddAsync(new Message()
             {
