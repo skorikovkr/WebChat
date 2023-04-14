@@ -72,7 +72,8 @@ namespace WebChatTest.Hubs
                 Text = message,
                 ChatRoom = room,
                 Sender = user,
-                Date = DateTime.Now
+                Date = DateTime.Now,
+                UserName = username
             });
             await _dbContext.SaveChangesAsync();
         }

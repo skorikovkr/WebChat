@@ -59,7 +59,7 @@ namespace WebChatTest.Controllers
             var user = await _userManager.FindByNameAsync(info.UserName);
 
             if (user == null)
-                return BadRequest();
+                return Unauthorized("Wrong password or username.");
 
             var userSignIn = await _signInManager.PasswordSignInAsync(user, info.Password, false, false);
 
@@ -80,10 +80,11 @@ namespace WebChatTest.Controllers
                 var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
                 return Ok(encodedJwt);
             }
-            return Unauthorized();
+            return Unauthorized("Wrong password or username.");
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
