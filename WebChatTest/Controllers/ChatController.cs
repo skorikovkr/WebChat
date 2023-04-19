@@ -110,14 +110,16 @@ namespace WebChatTest.Controllers
         {
             var username = User.Identity!.Name;
             var user = await _userManager.FindByNameAsync(username);
-            return Ok(user.ChatRooms
+            var rooms = user?.ChatRooms?
                 .Select(r => {
-                    if (String.IsNullOrEmpty(r.DisplayName)) {
+                    if (String.IsNullOrEmpty(r.DisplayName))
+                    {
                         var someUserNamesFromGroup = r.Users.Take(3).Select(u => u.UserName);
                         r.DisplayName = String.Join(", ", someUserNamesFromGroup);
                     };
                     return r;
-                }).ToList());
+                }).ToList();
+            return Ok(rooms ?? new List<ChatRoom>());
         }
 
         [HttpGet]
